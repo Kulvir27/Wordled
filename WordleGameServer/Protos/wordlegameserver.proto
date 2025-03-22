@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+option csharp_namespace = "WordleGameServer";
+
+// The Daily Wordle service definition
+service DailyWordle {
+  // Streams guesses from the user and responds with feedback
+  rpc Play (stream PlayRequest) returns (stream PlayResponse);
+  // Get global stats for current day's Wordle users
+  rpc GetStats(StatsRequest) returns (StatsResponse);
+}
+
+// Letter information
+enum FeedbackType {
+    UNKNOWN = 0; // Default
+    CORRECT_POSITION = 1;
+    WRONG_POSITION = 2;
+    NOT_IN_WORD = 3;
+}
+
+// Letter-by-letter details
+message LetterFeedback {
+  string letter = 1;
+  FeedbackType feedback = 2;
+}
+
+// The request message containing the user's guess
+message PlayRequest {
+	string word = 1;
+}
+
+// The response message containing the result of the guess
+message PlayResponse {
+	bool correct = 1;
+	bool gameOver = 2;
+	int32 guesses = 3;
+	repeated LetterFeedback letters = 4;
+	string message = 5;
+}
+
+// Empty request message for getting global stats
+message StatsRequest {
+}
+
+// The response message containing the global stats
+message StatsResponse {
+	int32 totalPlayers = 1;
+	double winPercentage = 2;
+	double averageGuesses =  3;
+}

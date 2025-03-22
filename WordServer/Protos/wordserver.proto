@@ -4,7 +4,9 @@ option csharp_namespace = "WordServer";
 
 // Provides methods that implement the Word service.
 service DailyWord {
+  // Returns the word of the day
   rpc GetWord (GetWordRequest) returns (GetWordResponse);
+  // Validates the user's guess
   rpc ValidateWord(ValidateWordRequest) returns (ValidateWordResponse);
 }
 
@@ -16,6 +18,7 @@ message GetWordResponse {
   string word = 1;
 }
 
+// The user's guess
 message ValidateWordRequest {
 	string word = 1;
 }

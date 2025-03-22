@@ -7,7 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="Protos\greet.proto" GrpcServices="Server" />
+    <None Remove="Protos\wordlegameserver.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos\wordlegameserver.proto" GrpcServices="Server" />
   </ItemGroup>
 
   <ItemGroup>
