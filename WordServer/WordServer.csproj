@@ -7,12 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Protos\dailyword.proto" />
+    <None Remove="Protos\wordserver.proto" />
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="Protos\dailyword.proto" GrpcServices="Server" />
-    <Protobuf Include="Protos\greet.proto" GrpcServices="Server" />
+    <Protobuf Include="Protos\wordserver.proto" GrpcServices="Server" />
   </ItemGroup>
 
   <ItemGroup>
