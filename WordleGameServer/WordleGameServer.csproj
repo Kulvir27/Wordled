@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
@@ -8,10 +8,12 @@
 
   <ItemGroup>
     <None Remove="Protos\wordlegameserver.proto" />
+    <None Remove="Protos\wordserver.proto" />
   </ItemGroup>
 
   <ItemGroup>
     <Protobuf Include="Protos\wordlegameserver.proto" GrpcServices="Server" />
+    <Protobuf Include="Protos\wordserver.proto" GrpcServices="Client" />
   </ItemGroup>
 
   <ItemGroup>

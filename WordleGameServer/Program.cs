@@ -1,3 +1,6 @@
+using WordServer;
+
+
 namespace WordleGameServer;
 
 public class Program
@@ -11,6 +14,7 @@ public class Program
 
         // Add services to the container.
         builder.Services.AddGrpc();
+        builder.Services.AddGrpcClient<DailyWord.DailyWordClient>(o =>  { o.Address = new Uri("http://localhost:5001"); });
 
         var app = builder.Build();
 
