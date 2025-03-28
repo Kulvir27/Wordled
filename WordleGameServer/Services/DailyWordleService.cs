@@ -4,10 +4,10 @@ using System.Text.Json;
 
 namespace WordleGameServer
 {
-    public class DailyWordleService : DailyWordle.DailyWordleBase
+    public class DailyWordleService : WordleGameService.WordleGameServiceBase
     {
         // Class members
-        private readonly DailyWord.DailyWordClient _wordClient;
+        private readonly DailyWord.DailyWordClient _wordClient; // instance of DailyWord service from WordServer, allows us to do GetWord and ValidateWord()
         private static readonly string StatsDirectory = "stats";
         private static readonly object FileLock = new();
 
@@ -28,7 +28,7 @@ namespace WordleGameServer
             int turns = 0;
             bool won = false;
             var wordResponse = await _wordClient.GetWordAsync(new GetWordRequest());
-            string wordToGuess = wordResponse.Word.ToLower();
+            string wordToGuess = wordResponse.Word.ToLower(); // random word of the day
             string wordDate = DateTime.Now.ToString("yyyy-MM-dd");
 
             // Process the request stream
@@ -52,13 +52,16 @@ namespace WordleGameServer
                     // Word not in the list
                     if (!validateResponse.Correct)
                     {
+                        // Process the letters and return a list
+                        var feedback = GenerateLetterFeedback(userGuess, wordToGuess);
+
                         // Send a PlayResponse back to the user with all fields populated (this is how it's always done)
                         var response = new PlayResponse
                         {
                             Correct = false,
                             GameOver = false,
                             Guesses = turns,
-                            Letters = { },
+                            Letters = { feedback },
                             Message = $"'{userGuess}' is not a valid word."
                         };
 
