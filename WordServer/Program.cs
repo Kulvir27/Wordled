@@ -6,8 +6,7 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Additional configuration is required to successfully run gRPC on macOS.
-        // For instructions on how to configure Kestrel and gRPC clients on macOS, visit https://go.microsoft.com/fwlink/?linkid=2099682
+        builder.WebHost.UseUrls("https://localhost:7181", "http://localhost:5109");
 
         // Add services to the container.
         builder.Services.AddGrpc();
