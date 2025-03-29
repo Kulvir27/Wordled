@@ -4,13 +4,12 @@ using System.Text.Json;
 
 namespace WordleGameServer
 {
-    public class DailyWordleService : WordleGameService.WordleGameServiceBase
+    public class DailyWordleService : DailyWordle.DailyWordleBase
     {
         // Class members
         private readonly DailyWord.DailyWordClient _wordClient; // instance of DailyWord service from WordServer, allows us to do GetWord and ValidateWord()
         private static readonly string StatsDirectory = "stats";
         private static readonly object FileLock = new();
-
 
         // Constructor to initialize the client instance
         public DailyWordleService(DailyWord.DailyWordClient wordClient)
@@ -18,26 +17,24 @@ namespace WordleGameServer
             _wordClient = wordClient;
         }
 
-
         public override async Task Play(
             IAsyncStreamReader<PlayRequest> requestStream,
             IServerStreamWriter<PlayResponse> responseStream,
             ServerCallContext context)
         {
-
             int turns = 0;
             bool won = false;
             var wordResponse = await _wordClient.GetWordAsync(new GetWordRequest());
             string wordToGuess = wordResponse.Word.ToLower(); // random word of the day
             string wordDate = DateTime.Now.ToString("yyyy-MM-dd");
+            var feedback = new List<LetterFeedback>();
 
             // Process the request stream
             await foreach (var request in requestStream.ReadAllAsync())
             {
-                if (won || turns >= 6)
-                    break;
-
                 string userGuess = request.Word.ToLower();
+
+                if (won) break;
 
                 // Validate guess length (must be 5 letters)
                 if (userGuess.Length == 5)
@@ -48,70 +45,91 @@ namespace WordleGameServer
                     // Pass the request to our client instance (DailyWordleService property)
                     var validateResponse = await _wordClient.ValidateWordAsync(validateRequest);
 
-
-                    // Word not in the list
+                    // Word not in the list, Invalid Guess, does not count as a turn
                     if (!validateResponse.Correct)
                     {
                         // Process the letters and return a list
-                        var feedback = GenerateLetterFeedback(userGuess, wordToGuess);
+                        feedback = GenerateLetterFeedback(userGuess, wordToGuess);
 
                         // Send a PlayResponse back to the user with all fields populated (this is how it's always done)
                         var response = new PlayResponse
                         {
                             Correct = false,
                             GameOver = false,
+                            ValidWord = false,
                             Guesses = turns,
                             Letters = { feedback },
-                            Message = $"'{userGuess}' is not a valid word."
+                            Message = "Word does not exist in wordle.json"
                         };
 
                         await responseStream.WriteAsync(response);
                         continue;
                     }
+
+                    // Valid turn, guessed word exists in wordle.json
+                    turns++;
+
+                    // Winning logic (Win Game)
+                    if (userGuess == wordToGuess)
+                    {
+                        // Set the loop condition to break out
+                        won = true;
+
+                        // Process the letters and return a list
+                        feedback = GenerateLetterFeedback(userGuess, wordToGuess);
+
+                        var response = new PlayResponse
+                        {
+                            Correct = true,
+                            GameOver = true,
+                            ValidWord = true,
+                            Guesses = turns,
+                            Letters = { feedback },
+                            Message = $"You win! You've correctly guessed today's word, '{wordToGuess}'!"
+                        };
+
+                        await responseStream.WriteAsync(response);
+                        break;
+                    }
+
+                    // Check if user has used all their turns (Game Over)
+                    if (turns > 5)
+                    {
+                        // Process the letters and return a list
+                        feedback = GenerateLetterFeedback(userGuess, wordToGuess);
+
+                        var response = new PlayResponse
+                        {
+                            Correct = false,
+                            GameOver = true,
+                            ValidWord = true,
+                            Guesses = turns,
+                            Letters = { feedback },
+                            Message = $"You lose!"
+                        };
+
+                        await responseStream.WriteAsync(response);
+                        break;
+                    }
+                    // Incorrect letters or placements
                     else
                     {
-                        // Valid turn
-                        turns++;
+                        // Process the letters
+                        feedback = GenerateLetterFeedback(userGuess, wordToGuess);
 
-                        // Winning logic
-                        if (userGuess == wordToGuess)
+                        var response = new PlayResponse
                         {
-                            // Set the loop condition to break out
-                            won = true;
+                            Correct = false,
+                            GameOver = false,
+                            ValidWord = true,
+                            Guesses = turns,
+                            Letters = { feedback },
+                            Message = ""
+                        };
 
-                            // Process the letters and return a list
-                            var feedback = GenerateLetterFeedback(userGuess, wordToGuess);
-
-                            var response = new PlayResponse
-                            {
-                                Correct = true,
-                                GameOver = true,
-                                Guesses = turns,
-                                Letters = { feedback },
-                                Message = $"Congratulations! You've correctly guessed today's word, '{wordToGuess}'!"
-                            };
-
-                            await responseStream.WriteAsync(response);
-                            break;
-                        }
-                        // Incorrect letters or placements
-                        else
-                        {
-                            // Process the letters
-                            var feedback = GenerateLetterFeedback(userGuess, wordToGuess);
-
-                            var response = new PlayResponse
-                            {
-                                Correct = false,
-                                GameOver = false,
-                                Guesses = turns,
-                                Letters = { feedback },
-                                Message = ""
-                            };
-
-                            await responseStream.WriteAsync(response);
-                        }
+                        await responseStream.WriteAsync(response);
                     }
+
                 }
             }
 
@@ -122,12 +140,12 @@ namespace WordleGameServer
                 lock (FileLock)
                 {
                     // Use Path.Combine() to get a properly formatted path
-                    string statsPath = Path.Combine("stats", $"{wordDate}.json");
+                    string statsPath = Path.Combine(StatsDirectory, $"{wordDate}.json");
 
                     DailyStats stats;
 
                     // Create directory if it doesn't exist
-                    Directory.CreateDirectory("stats");
+                    Directory.CreateDirectory(StatsDirectory);
 
                     // If today's stats exist, load into a DailyStats object
                     if (File.Exists(statsPath))
@@ -166,7 +184,7 @@ namespace WordleGameServer
         {
             // Grab the date to find or name the json
             string wordDate = DateTime.Now.ToString("yyyy-MM-dd");
-            string statsPath = Path.Combine("stats", $"{wordDate}.json");
+            string statsPath = Path.Combine(StatsDirectory, $"{wordDate}.json");
 
             lock (FileLock)
             {
@@ -183,7 +201,6 @@ namespace WordleGameServer
 
                 string json = File.ReadAllText(statsPath);
                 var stats = JsonSerializer.Deserialize<DailyStats>(json)!;
-
 
                 // Calculate
                 double winPercentage = stats.TotalPlayers > 0 ? (double)stats.WinCount / stats.TotalPlayers * 100 : 0;

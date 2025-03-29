@@ -20,4 +20,8 @@
     <PackageReference Include="Grpc.AspNetCore" Version="2.49.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="stats\" />
+  </ItemGroup>
+
 </Project>

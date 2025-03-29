@@ -2,8 +2,8 @@ syntax = "proto3";
 
 option csharp_namespace = "WordleGameServer";
 
-// The WordleGameService definition
-service WordleGameService {
+// The Daily Wordle Service definition
+service DailyWordle {
   // Streams guesses from the user and responds with feedback
   rpc Play (stream PlayRequest) returns (stream PlayResponse);
   // Get global stats for current day's Wordle users
@@ -33,9 +33,10 @@ message PlayRequest {
 message PlayResponse {
 	bool correct = 1;
 	bool gameOver = 2;
-	int32 guesses = 3;
-	repeated LetterFeedback letters = 4;
-	string message = 5;
+	bool validWord = 3;
+	int32 guesses = 4;
+	repeated LetterFeedback letters = 5;
+	string message = 6;
 }
 
 // Empty request message for getting global stats
