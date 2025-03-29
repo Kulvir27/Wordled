@@ -6,11 +6,11 @@ namespace WordleGameClient
 {
     internal class Program
     {
-        static async Task Main(string[] args) // made async here to allow for awaits in this method
+        static async Task Main(string[] args) // Made async here to allow for awaits in this method
         {
             // Connect to the gRPC service
             var channel = GrpcChannel.ForAddress("https://localhost:7275");
-            var gameClient = new WordleGameService.WordleGameServiceClient(channel);
+            var gameClient = new DailyWordle.DailyWordleClient(channel);
 
             // Display game rules
             DisplayRules();
@@ -22,33 +22,41 @@ namespace WordleGameClient
 
             try
             {
-                // start game
-                using var call = gameClient.Play();
+                // Start game
+                using var call = gameClient.Play();                
 
-                // loop for user guesses
-                for (int turn = 1; turn <= 5; turn++)
+                // Loop for user guesses
+                for (int turn = 0; turn < 6; turn++)
                 {
-                    Console.Write($"({turn}): ");
+                    Console.Write($"({turn+1}): ");
                     var guess = (Console.ReadLine() ?? string.Empty);
 
+                    // Validate user guess length, invalid length does not count as a turn
                     if (guess.Length != 5)
                     {
                         Console.WriteLine("Invalid word length. Try again.");
-                        turn--; // user can retry their current turn
+                        turn--; // redo guess
                         continue;
                     }
 
-                    // pass next word guessed to WordleGameService
+                    // Pass next word guessed to WordleGameService
                     await call.RequestStream.WriteAsync(new PlayRequest { Word = guess });
 
-
                     // Process the server's response
-                    if (await call.ResponseStream.MoveNext()) // await the MoveNext() to ensure we dont access stale ResponseStream.Current
+                    if (await call.ResponseStream.MoveNext()) // Await the MoveNext() to ensure we dont access stale ResponseStream.Current
                     {
                         var playResponse = call.ResponseStream.Current;
 
                         if (playResponse != null)
                         {
+                            // If invalid guess (does not exist in wordle.json), decrement and redo turn
+                            if (!playResponse.ValidWord)
+                            {
+                                turn--; // redo turn
+                                Console.WriteLine(playResponse.Message);
+                                continue;
+                            }
+
                             // Display feedback
                             Console.WriteLine($"     {string.Join("", playResponse.Letters.Select(l => MapFeedback(l.Feedback)))}");
                             Console.WriteLine();
@@ -63,9 +71,14 @@ namespace WordleGameClient
                             Console.WriteLine();
 
                             // Check if the game is over
-                            if (playResponse.GameOver)
+                            if (playResponse.Correct)
                             {
-                                Console.WriteLine("Game over! Thanks for playing.");
+                                Console.WriteLine(playResponse.Message);
+                                break;
+                            }
+                            else if (playResponse.GameOver)
+                            {
+                                Console.WriteLine(playResponse.Message);
                                 break;
                             }
                         }
@@ -76,6 +89,15 @@ namespace WordleGameClient
                         break;
                     }
                 }
+
+                // display statistics
+                Console.WriteLine("\nStatistics");
+                Console.WriteLine("----------");
+                StatsRequest statsRequest = new() { };
+                StatsResponse stats = gameClient.GetStats(statsRequest);
+                Console.WriteLine("Players:          " + stats.TotalPlayers);
+                Console.WriteLine("Winners:          " + Math.Round(stats.WinPercentage) + "%");
+                Console.WriteLine("Average Guesses:  " + stats.AverageGuesses);
 
                 // Wrap up the game session
                 await call.RequestStream.CompleteAsync();
