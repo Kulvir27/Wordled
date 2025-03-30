@@ -6,6 +6,7 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        // For proper .exe port usage
         builder.WebHost.UseUrls("https://localhost:7181", "http://localhost:5109");
 
         // Add services to the container.
