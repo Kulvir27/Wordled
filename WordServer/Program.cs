@@ -1,3 +1,7 @@
+// WordServer.Program.cs
+// K.Hira, R.Sweet
+// April 4, 2025
+// Entry point for the WordServer application, which sets up and runs the gRPC service.
 namespace WordServer;
 
 public class Program
@@ -6,7 +10,8 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // For proper .exe port usage
+        // Specify the URLs for the server to listen on
+        // Ensures compatibility when running as an executable (.exe)
         builder.WebHost.UseUrls("https://localhost:7181", "http://localhost:5109");
 
         // Add services to the container.
@@ -14,7 +19,7 @@ public class Program
 
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
+        // Map the DailyWord gRPC service to handle requests
         app.MapGrpcService<DailyWordService>();
         app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
 

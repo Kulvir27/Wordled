@@ -1,4 +1,10 @@
-﻿using Grpc.Net.Client;
+﻿// WordleGameClient.Program.cs
+// K.Hira, R.Sweet
+// April 4, 2025
+// Implements the client-side logic for connecting to the WordleGameServer gRPC service,
+// managing the user interface for Wordle gameplay, and fetching gameplay statistics.
+
+using Grpc.Net.Client;
 using Grpc.Core;
 using WordleGameServer;
 
@@ -37,7 +43,7 @@ namespace WordleGameClient
                     if (guess.Length != 5)
                     {
                         Console.WriteLine("Invalid word length. Try again.");
-                        turn--; // redo guess
+                        turn--; // Redo guess
                         continue;
                     }
 
@@ -53,7 +59,7 @@ namespace WordleGameClient
 
                             if (playResponse != null)
                             {
-                                // If invalid guess (does not exist in wordle.json), decrement and redo turn
+                                // If invalid guess (does not exist in wordle.json)
                                 if (!playResponse.ValidWord)
                                 {
                                     turn--; // redo turn
@@ -134,6 +140,9 @@ namespace WordleGameClient
             }
         }
 
+        /// <summary>
+        /// Displays the rules of the Wordle game to the user.
+        /// </summary>
         static void DisplayRules()
         {
             Console.WriteLine("+-------------------+");
@@ -149,6 +158,11 @@ namespace WordleGameClient
             Console.WriteLine("     Available: a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z\n");
         }
 
+        /// <summary>
+        /// Maps the feedback type from the server to a displayable character.
+        /// </summary>
+        /// <param name="feedback">The feedback type from the server.</param>
+        /// <returns>A character representing the feedback.</returns>
         static string MapFeedback(FeedbackType feedback)
         {
             return feedback switch
@@ -160,6 +174,13 @@ namespace WordleGameClient
             };
         }
 
+        /// <summary>
+        /// Updates the sets tracking included, excluded, and available letters based on feedback.
+        /// </summary>
+        /// <param name="letters">The feedback for each letter in the user's guess.</param>
+        /// <param name="available">The set of available letters.</param>
+        /// <param name="included">The set of correctly guessed letters.</param>
+        /// <param name="excluded">The set of incorrectly guessed letters.</param>
         static void UpdateLetterSets(IEnumerable<LetterFeedback> letters, HashSet<char> available, HashSet<char> included, HashSet<char> excluded)
         {
             foreach (var letterFeedback in letters)

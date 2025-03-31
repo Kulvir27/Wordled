@@ -1,22 +1,47 @@
-﻿using Grpc.Core;
+﻿// WordleGameServer.Services.DailyWordleService.cs
+// K.Hira, R.Sweet
+// April 4, 2025
+// A gRPC service that implements the DailyWordle game logic, including handling
+// bidirectional streaming for gameplay and retrieving user statistics.
+// This service interacts with the WordServer's DailyWord service to validate
+// words and fetch the daily word.
+
+using Grpc.Core;
 using WordServer;
 using System.Text.Json;
 
 namespace WordleGameServer
 {
+    /// <summary>
+    /// Implementation of the DailyWordle gRPC service.
+    /// This service allows clients to play a Wordle-like game through bidirectional streaming
+    /// and retrieve daily statistics through a unary RPC.
+    /// </summary>
     public class DailyWordleService : DailyWordle.DailyWordleBase
     {
         // Class members
-        private readonly DailyWord.DailyWordClient _wordClient; // instance of DailyWord service from WordServer, allows us to do GetWord and ValidateWord()
+        private readonly DailyWord.DailyWordClient _wordClient;
         private static readonly string StatsDirectory = "stats";
         private static readonly object FileLock = new();
 
-        // Constructor to initialize the client instance
+        /// <summary>
+        /// Constructor to initialize the DailyWordleService with a DailyWord client.
+        /// </summary>
+        /// <param name="wordClient">Instance of DailyWord.DailyWordClient to fetch and validate words</param>
         public DailyWordleService(DailyWord.DailyWordClient wordClient)
         {
             _wordClient = wordClient;
         }
 
+        /// <summary>
+        /// Implementation of the Play RPC, which uses a bidirectional stream to allow the client to send
+        /// word guesses and receive feedback from the server in real-time. The method asynchronously processes 
+        /// the user's guesses, checks their validity, and provides feedback on each guess until the game is won or lost.
+        /// </summary>
+        /// <param name="requestStream">A reference to the incoming request stream, which receives PlayRequest objects containing user guesses.</param>
+        /// <param name="responseStream">A reference to the outgoing response stream, which sends PlayResponse objects with feedback on each guess.</param>
+        /// <param name="context">Provides metadata, deadlines, and cancellation support for the gRPC call.</param>
+        /// <returns>A Task representing the asynchronous execution of the method.</returns>
         public override async Task Play(
             IAsyncStreamReader<PlayRequest> requestStream,
             IServerStreamWriter<PlayResponse> responseStream,
@@ -177,9 +202,14 @@ namespace WordleGameServer
             }
         }
 
-
-        // Pulls the stats that are saved as DailyStats from the JSON and serves up statistics.
-        // This reports on but does not modify the JSON.
+        /// <summary>
+        /// Implementation of the GetStats RPC, which retrieves and returns user game statistics 
+        /// for the current day's Wordle game. This method reads from a JSON file that stores game statistics, 
+        /// calculates the win percentage and average number of guesses, and sends the data back to the client.
+        /// </summary>
+        /// <param name="request">An empty StatsRequest object, stats are retrieved based on the current date.</param>
+        /// <param name="context">Provides metadata, deadlines, and cancellation support for the gRPC call.</param>
+        /// <returns>A Task containing a StatsResponse object with the total players, win percentage, and average guesses.</returns>
         public override Task<StatsResponse> GetStats(StatsRequest request, ServerCallContext context)
         {
             // Grab the date to find or name the json
@@ -216,10 +246,13 @@ namespace WordleGameServer
             }
         }
 
-
-        // Helper methods
-
-        // Processes each letter and returns as a list of Letterfeedback objects: {letter, FeedbackType enum}
+        /// <summary>
+        /// Analyzes the player's guessed word and returns feedback for each letter, indicating 
+        /// whether it is in the correct position, in the word but misplaced, or not in the word at all.
+        /// </summary>
+        /// <param name="guess">The player's guessed word, converted to lowercase.</param>
+        /// <param name="wordToGuess">The correct word of the day, also in lowercase.</param>
+        /// <returns>A list of LetterFeedback objects, each containing a letter and its corresponding feedback type.</returns>
         private List<LetterFeedback> GenerateLetterFeedback(string guess, string wordToGuess)
         {
             // Create an array so we can use the index for easy comparison

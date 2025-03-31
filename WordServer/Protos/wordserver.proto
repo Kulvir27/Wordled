@@ -1,8 +1,12 @@
+// WordServer.Protos.wordserver.proto
+// K.Hira, R.Sweet
+// April 4, 2025
+// Defines the gRPC service for retrieving the daily Wordle word and validating user guesses.
 syntax = "proto3";
 
 option csharp_namespace = "WordServer";
 
-// Provides methods that implement the Word service.
+// Provides methods for retrieving the daily Wordle word and validating user guesses.
 service DailyWord {
   // Returns the word of the day
   rpc GetWord (GetWordRequest) returns (GetWordResponse);
@@ -10,20 +14,20 @@ service DailyWord {
   rpc ValidateWord(ValidateWordRequest) returns (ValidateWordResponse);
 }
 
-// Empty request
+// Empty request message for retrieving the word of the day.
 message GetWordRequest {}
 
-// The word of the day
+// Response message containing the word of the day.
 message GetWordResponse {
   string word = 1;
 }
 
-// The user's guess
+// Request message containing the user's guessed word.
 message ValidateWordRequest {
 	string word = 1;
 }
 
-// The result of the user's guess
+// Response message indicating whether the user's guess is valid.
 message ValidateWordResponse {
   bool correct = 1;
 }
