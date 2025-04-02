@@ -1,5 +1,5 @@
 // WordServer.Program.cs
-// K.Hira, R.Sweet
+// K. Hira, R. Sweet
 // April 4, 2025
 // Entry point for the WordServer application, which sets up and runs the gRPC service.
 namespace WordServer;
@@ -14,7 +14,7 @@ public class Program
         // Ensures compatibility when running as an executable (.exe)
         builder.WebHost.UseUrls("https://localhost:7181", "http://localhost:5109");
 
-        // Add services to the container.
+        // Add services to the container
         builder.Services.AddGrpc();
 
         var app = builder.Build();

@@ -1,5 +1,5 @@
 ﻿// WordleGameServer.Services.DailyWordleService.cs
-// K.Hira, R.Sweet
+// K. Hira, R. Sweet
 // April 4, 2025
 // A gRPC service that implements the DailyWordle game logic, including handling
 // bidirectional streaming for gameplay and retrieving user statistics.
@@ -19,7 +19,6 @@ namespace WordleGameServer
     /// </summary>
     public class DailyWordleService : DailyWordle.DailyWordleBase
     {
-        // Class members
         private readonly DailyWord.DailyWordClient _wordClient;
         private static readonly string StatsDirectory = "stats";
         private static readonly object FileLock = new();
@@ -50,7 +49,7 @@ namespace WordleGameServer
             int turns = 0;
             bool won = false;
             var wordResponse = await _wordClient.GetWordAsync(new GetWordRequest());
-            string wordToGuess = wordResponse.Word.ToLower(); // random word of the day
+            string wordToGuess = wordResponse.Word.ToLower();
             string wordDate = DateTime.Now.ToString("yyyy-MM-dd");
             var feedback = new List<LetterFeedback>();
 
@@ -61,22 +60,16 @@ namespace WordleGameServer
 
                 if (won) break;
 
-                // Validate guess length (must be 5 letters)
                 if (userGuess.Length == 5)
                 {
-                    // Create a ValidateWordRequest object with the user's guess
                     var validateRequest = new ValidateWordRequest { Word = userGuess };
-
-                    // Pass the request to our client instance (DailyWordleService property)
                     var validateResponse = await _wordClient.ValidateWordAsync(validateRequest);
 
-                    // Word not in the list, Invalid Guess, does not count as a turn
                     if (!validateResponse.Correct)
                     {
-                        // Process the letters and return a list
                         feedback = GenerateLetterFeedback(userGuess, wordToGuess);
 
-                        // Send a PlayResponse back to the user with all fields populated (this is how it's always done)
+                        // Send a PlayResponse back to the user
                         var response = new PlayResponse
                         {
                             Correct = false,
@@ -91,16 +84,13 @@ namespace WordleGameServer
                         continue;
                     }
 
-                    // Valid turn, guessed word exists in wordle.json
                     turns++;
 
-                    // Winning logic (Win Game)
+                    // Check if the user has won
                     if (userGuess == wordToGuess)
                     {
-                        // Set the loop condition to break out
                         won = true;
 
-                        // Process the letters and return a list
                         feedback = GenerateLetterFeedback(userGuess, wordToGuess);
 
                         var response = new PlayResponse
@@ -120,7 +110,6 @@ namespace WordleGameServer
                     // Check if user has used all their turns (Game Over)
                     if (turns > 5)
                     {
-                        // Process the letters and return a list
                         feedback = GenerateLetterFeedback(userGuess, wordToGuess);
 
                         var response = new PlayResponse
@@ -139,7 +128,6 @@ namespace WordleGameServer
                     // Incorrect letters or placements
                     else
                     {
-                        // Process the letters
                         feedback = GenerateLetterFeedback(userGuess, wordToGuess);
 
                         var response = new PlayResponse
@@ -164,22 +152,18 @@ namespace WordleGameServer
                 // Lock the file so only one game can update at a time 
                 lock (FileLock)
                 {
-                    // Use Path.Combine() to get a properly formatted path
                     string statsPath = Path.Combine(StatsDirectory, $"{wordDate}.json");
-
                     DailyStats stats;
 
-                    // Create directory if it doesn't exist
+                    // Ensure stats directory exists
                     Directory.CreateDirectory(StatsDirectory);
 
-                    // If today's stats exist, load into a DailyStats object
                     if (File.Exists(statsPath))
                     {
                         string json = File.ReadAllText(statsPath);
                         stats = JsonSerializer.Deserialize<DailyStats>(json)!;
 
                     }
-                    // Else, create a new stats object and assign it to stats
                     else
                     {
                         stats = new DailyStats
@@ -194,7 +178,6 @@ namespace WordleGameServer
                     // Update the stats with class method
                     stats.RecordGame(won, turns);
 
-                    // Write to file
                     string updatedJson = JsonSerializer.Serialize(stats, new JsonSerializerOptions { WriteIndented = true });
                     File.WriteAllText(statsPath, updatedJson);
 
@@ -212,7 +195,6 @@ namespace WordleGameServer
         /// <returns>A Task containing a StatsResponse object with the total players, win percentage, and average guesses.</returns>
         public override Task<StatsResponse> GetStats(StatsRequest request, ServerCallContext context)
         {
-            // Grab the date to find or name the json
             string wordDate = DateTime.Now.ToString("yyyy-MM-dd");
             string statsPath = Path.Combine(StatsDirectory, $"{wordDate}.json");
 
@@ -220,7 +202,6 @@ namespace WordleGameServer
             {
                 if (!File.Exists(statsPath))
                 {
-                    // Return zeroed out stats for days not yet recorded
                     return Task.FromResult(new StatsResponse
                     {
                         TotalPlayers = 0,
@@ -232,11 +213,9 @@ namespace WordleGameServer
                 string json = File.ReadAllText(statsPath);
                 var stats = JsonSerializer.Deserialize<DailyStats>(json)!;
 
-                // Calculate
                 double winPercentage = stats.TotalPlayers > 0 ? (double)stats.WinCount / stats.TotalPlayers * 100 : 0;
                 double averageGuesses = stats.WinCount > 0 ? stats.GuessDistribution.Sum(g => g.Key * g.Value) / (double)stats.WinCount : 0;
 
-                // Return found stats
                 return Task.FromResult(new StatsResponse
                 {
                     TotalPlayers = stats.TotalPlayers,
@@ -258,22 +237,19 @@ namespace WordleGameServer
             // Create an array so we can use the index for easy comparison
             var feedback = new LetterFeedback[5];
 
-            // Track how many times the letter has matched so far
             var matchCounts = new Dictionary<char, int>();
 
-            // Find correct letters in correct positions
             for (int i = 0; i < 5; i++)
             {
                 if (guess[i] == wordToGuess[i])
                 {
-                    // Create the feedback object defined in the proto
                     feedback[i] = new LetterFeedback
                     {
                         Letter = guess[i].ToString(),
                         Feedback = FeedbackType.CorrectPosition
                     };
 
-                    // Track the matches (or populate the first appearance)
+                    // Track the matches
                     if (!matchCounts.ContainsKey(guess[i]))
                         matchCounts[guess[i]] = 1;
                     else
@@ -281,7 +257,7 @@ namespace WordleGameServer
                 }
             }
 
-            // Then, check for correct letters in wrong positions, or incorrect letters
+            // Check for correct letters in wrong positions, or incorrect letters
             for (int i = 0; i < 5; i++)
             {
                 // Skip matches that were handled in the first loop
@@ -289,7 +265,6 @@ namespace WordleGameServer
 
                 char letter = guess[i];
 
-                // Grab the count of letter instances in correct word
                 int totalInWord = wordToGuess.Count(c => c == letter);
                 int usedSoFar = matchCounts.ContainsKey(letter) ? matchCounts[letter] : 0;
 
@@ -304,7 +279,7 @@ namespace WordleGameServer
                 }
                 else
                 {
-                    // Letter is in word but in the wrong position
+                    // Wrong position
                     feedback[i] = new LetterFeedback
                     {
                         Letter = letter.ToString(),

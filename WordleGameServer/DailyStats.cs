@@ -1,5 +1,5 @@
 ﻿// WordleGameServer.DailyStats.cs
-// K.Hira, R.Sweet
+// K. Hira, R. Sweet
 // April 4, 2025
 // Class for storing and managing daily Wordle gameplay statistics.
 
@@ -10,20 +10,21 @@ namespace WordleGameServer
     /// </summary>
     public class DailyStats
     {
-        // Members
-
         // <summary>
         /// The date for which these statistics apply (formatted as YYYY-MM-DD).
         /// </summary>
         public string Date { get; set; }
+
         /// <summary>
         /// The total number of players who attempted the Wordle.
         /// </summary>
         public int TotalPlayers { get; set; }
+
         /// <summary>
         /// The total number of players who successfully guessed the Wordle.
         /// </summary>
         public int WinCount { get; set; }
+
         /// <summary>
         /// Distribution of guesses required to win (key = number of guesses, value = frequency).
         /// </summary>

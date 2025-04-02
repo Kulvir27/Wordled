@@ -1,5 +1,5 @@
 // WordleGameServer.Program.cs
-// K.Hira, R.Sweet
+// K. Hira, R. Sweet
 // April 4, 2025
 // Configures and runs the WordleGameServer, a gRPC-based service that supports Wordle gameplay functionality.
 
@@ -16,7 +16,7 @@ public class Program
         // Ensures compatibility when running as an executable (.exe)
         builder.WebHost.UseUrls("https://localhost:7275", "http://localhost:5228");
 
-        // Add services to the container.
+        // Add services to the container
         builder.Services.AddGrpc();
         builder.Services.AddGrpcClient<DailyWord.DailyWordClient>(o =>  { o.Address = new Uri("http://localhost:5109"); });
 

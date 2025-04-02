@@ -1,5 +1,5 @@
 ﻿// WordServer.Services.DailyWordService.cs
-// K.Hira, R.Sweet
+// K. Hira, R. Sweet
 // April 4, 2025
 // Implements the gRPC service for providing the daily Wordle word and validating user guesses.
 using Grpc.Core;

@@ -1,5 +1,5 @@
 ﻿// WordleGameClient.Program.cs
-// K.Hira, R.Sweet
+// K. Hira, R. Sweet
 // April 4, 2025
 // Implements the client-side logic for connecting to the WordleGameServer gRPC service,
 // managing the user interface for Wordle gameplay, and fetching gameplay statistics.
@@ -16,40 +16,33 @@ namespace WordleGameClient
         {
             bool PrintStats = true;
 
-            // Server is reachable, connect to the gRPC service
             var channel = GrpcChannel.ForAddress("https://localhost:7275");
             var gameClient = new DailyWordle.DailyWordleClient(channel);
 
-            // Display game rules
             DisplayRules();
 
-            // Initialize letter trackers
             var availableLetters = new HashSet<char>("abcdefghijklmnopqrstuvwxyz".ToCharArray());
             var includedLetters = new HashSet<char>();
             var excludedLetters = new HashSet<char>();
 
             try
             {
-                // Start game
                 using var call = gameClient.Play();                
 
-                // Loop for user guesses
                 for (int turn = 0; turn < 6; turn++)
                 {
                     Console.Write($"({turn+1}): ");
                     var guess = (Console.ReadLine() ?? string.Empty);
 
-                    // Validate user guess length, invalid length does not count as a turn
                     if (guess.Length != 5)
                     {
                         Console.WriteLine("Invalid word length. Try again.");
-                        turn--; // Redo guess
+                        turn--;
                         continue;
                     }
 
                     try
                     {
-                        // Pass next word guessed to WordleGameService
                         await call.RequestStream.WriteAsync(new PlayRequest { Word = guess });
 
                         // Process the server's response
@@ -59,28 +52,23 @@ namespace WordleGameClient
 
                             if (playResponse != null)
                             {
-                                // If invalid guess (does not exist in wordle.json)
                                 if (!playResponse.ValidWord)
                                 {
-                                    turn--; // redo turn
+                                    turn--;
                                     Console.WriteLine(playResponse.Message);
                                     continue;
                                 }
 
-                                // Display feedback
                                 Console.WriteLine($"     {string.Join("", playResponse.Letters.Select(l => MapFeedback(l.Feedback)))}");
                                 Console.WriteLine();
 
-                                // Update letter trackers
                                 UpdateLetterSets(playResponse.Letters, availableLetters, includedLetters, excludedLetters);
 
-                                // Display letter statuses
                                 Console.WriteLine($"     Included:  {string.Join(", ", includedLetters)}");
                                 Console.WriteLine($"     Available: {string.Join(", ", availableLetters)}");
                                 Console.WriteLine($"     Excluded:  {string.Join(", ", excludedLetters)}");
                                 Console.WriteLine();
 
-                                // Check if the game is over
                                 if (playResponse.Correct)
                                 {
                                     Console.WriteLine(playResponse.Message);
@@ -111,7 +99,6 @@ namespace WordleGameClient
                 // If game concludes safely
                 if (PrintStats)
                 {
-                    // Display statistics
                     Console.WriteLine("\nStatistics");
                     Console.WriteLine("----------");
                     StatsRequest statsRequest = new() { };
@@ -189,7 +176,6 @@ namespace WordleGameClient
 
                 switch (letterFeedback.Feedback)
                 {
-                    // Correct position and wrong position are both "included"
                     case FeedbackType.CorrectPosition:
                     case FeedbackType.WrongPosition:
                         included.Add(letter);
